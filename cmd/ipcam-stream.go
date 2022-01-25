@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	ipcam "github.com/ZalgoNoise/ipcam-stream/ipcam/service"
+	"github.com/ZalgoNoise/ipcam-stream/ipcam"
 )
 
 func Run() {
