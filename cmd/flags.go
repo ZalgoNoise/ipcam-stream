@@ -32,7 +32,7 @@ func getFlags() (*ipcam.StreamRequest, error) {
 		if err := json.Unmarshal(data, cfg); err != nil {
 			return nil, err
 		}
-		fmt.Printf("[http-stream]\tGot config from file:\n----\n%s\n----\n", string(data))
+		fmt.Printf("[ipcam-stream]\tGot config from file:\n----\n%s\n----\n", string(data))
 		return cfg, nil
 	}
 

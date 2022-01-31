@@ -1,6 +1,7 @@
 package ipcam
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"time"
@@ -38,10 +39,25 @@ func New() *StreamService {
 	}
 }
 
-func (s *StreamService) Capture(req *StreamRequest) {
+func (s *StreamService) Capture(req *StreamRequest) error {
 	//TODO: validate input
 	s.request = req
+
+	// initialize service
+	//  - clear cache
+	cache := &cache{}
+
+	err := cache.load(s.request.TmpDir)
+	if err != nil {
+		return err
+	}
+	errList := cache.clear()
+	if len(errList) > 0 {
+		fmt.Printf("[ipcam-stream] [cache] ERR: %s\n", err)
+	}
+
 	s.newCaptureResponse(s.request)
+	return nil
 }
 
 func (s *StreamService) newCaptureResponse(req *StreamRequest) {
