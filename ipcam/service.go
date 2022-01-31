@@ -71,18 +71,31 @@ func (s *StreamService) newCaptureResponse(req *StreamRequest) {
 	}(req.VideoRate)
 
 	for {
-		now := time.Now().Format("2006_02_01-15_04_05")
+		now := time.Now()
+
+		folderDate := now.Format("2006-01-02")
+		fileDate := now.Format("2006-01-02-15-04-05")
+
+		dir := &dir{}
+		if err := dir.load(req.OutDir); err != nil {
+			panic(err)
+		}
+
+		if !dir.exists(folderDate) {
+			dir.mkdir(folderDate)
+		}
+
 		s.Stream = &SplitStream{
 			audio:   &Stream{},
 			video:   &Stream{},
-			outPath: req.OutDir + now + req.OutExt,
+			outPath: req.OutDir + folderDate + "/" + fileDate + req.OutExt,
 		}
 
 		go s.Stream.video.SetSource(req.VideoURL)
 		s.Stream.audio.SetSource(req.AudioURL)
 
-		s.Stream.audio.SetOutput(req.TmpDir + "a-" + now + "_temp.mp4")
-		s.Stream.video.SetOutput(req.TmpDir + "v-" + now + "_temp.mp4")
+		s.Stream.audio.SetOutput(req.TmpDir + "a-" + fileDate + "_temp.mp4")
+		s.Stream.video.SetOutput(req.TmpDir + "v-" + fileDate + "_temp.mp4")
 
 		s.Stream.SyncTimeout(time.Minute * time.Duration(req.TimeLen))
 

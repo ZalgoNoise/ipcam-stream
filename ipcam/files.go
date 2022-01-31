@@ -42,3 +42,37 @@ func (c *cache) clear() []error {
 	return errs
 
 }
+
+type dir struct {
+	root string
+	dirs []string
+}
+
+func (d *dir) load(path string) error {
+
+	var err error
+
+	d.dirs, err = fs.Glob(os.DirFS(path), "*")
+
+	if err != nil {
+		return err
+	}
+
+	d.root = path
+
+	return nil
+
+}
+
+func (d *dir) exists(name string) bool {
+	for _, dir := range d.dirs {
+		if name == dir {
+			return true
+		}
+	}
+	return false
+}
+
+func (d *dir) mkdir(name string) error {
+	return os.Mkdir(d.root+name, 0755)
+}
