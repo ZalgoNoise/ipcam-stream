@@ -17,6 +17,7 @@ func getFlags() (*ipcam.StreamRequest, error) {
 	inputOutDir := flag.String("out", "~/", "Output directory to place files")
 	inputExtension := flag.String("ext", ".mp4", "Output extension")
 	inputVideoRate := flag.String("vrate", "25", "Input framerate of the MJPEG stream")
+	inputRotate := flag.Int("rotate", 7, "Number of days to keep data streams; rotate will remove streams older than # days")
 
 	inputCfgFile := flag.String("cfg", "", "Input configuration file (JSON)")
 
@@ -44,5 +45,6 @@ func getFlags() (*ipcam.StreamRequest, error) {
 		OutDir:    *inputOutDir,
 		OutExt:    *inputExtension,
 		VideoRate: *inputVideoRate,
+		Rotate:    *inputRotate,
 	}, nil
 }

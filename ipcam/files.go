@@ -1,8 +1,10 @@
 package ipcam
 
 import (
+	"fmt"
 	"io/fs"
 	"os"
+	"time"
 )
 
 type cache struct {
@@ -75,4 +77,46 @@ func (d *dir) exists(name string) bool {
 
 func (d *dir) mkdir(name string) error {
 	return os.Mkdir(d.root+name, 0755)
+}
+
+func (d *dir) listOlder(from time.Time, days int) ([]string, []error) {
+	var older []string
+	var errs []error
+
+	day := time.Duration(24 * time.Hour)
+
+	tresh := from.Add(time.Duration(-days) * day)
+
+	for _, folder := range d.dirs {
+		if folder == "cache" {
+			continue
+		}
+
+		t, err := time.Parse("2006-01-02", folder)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		if t.Before(tresh) {
+			older = append(older, folder)
+		}
+
+	}
+	return older, errs
+}
+
+func (d *dir) rotate(from time.Time, days int) {
+	targets, errs := d.listOlder(from, days)
+
+	for _, target := range targets {
+		if err := os.RemoveAll(d.root + target); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if len(errs) > 0 {
+		for _, err := range errs {
+			fmt.Printf("[ipcam-stream] [rotate] ERR: %s\n", err)
+		}
+	}
 }

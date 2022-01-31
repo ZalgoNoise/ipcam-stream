@@ -21,6 +21,7 @@ type StreamRequest struct {
 	OutDir    string `json:"outDir,omitempty"`
 	OutExt    string `json:"extension,omitempty"`
 	VideoRate string `json:"videoRate,omitempty"`
+	Rotate    int    `json:"rotate,omitempty"`
 }
 
 type StreamResponse struct {
@@ -31,6 +32,7 @@ type StreamResponse struct {
 	OutDir    string `json:"outDir,omitempty"`
 	OutExt    string `json:"extension,omitempty"`
 	VideoRate string `json:"videoRate,omitempty"`
+	Rotate    int    `json:"rotate,omitempty"`
 }
 
 func New() *StreamService {
@@ -84,6 +86,8 @@ func (s *StreamService) newCaptureResponse(req *StreamRequest) {
 		if !dir.exists(folderDate) {
 			dir.mkdir(folderDate)
 		}
+
+		go dir.rotate(now, req.Rotate)
 
 		s.Stream = &SplitStream{
 			audio:   &Stream{},
