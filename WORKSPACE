@@ -266,6 +266,13 @@ go_repository(
     version = "v0.0.0-20180917221912-90fa682c2a6e",
 )
 
+go_repository(
+    name = "com_github_zalgonoise_zlog",
+    importpath = "github.com/ZalgoNoise/zlog",
+    sum = "h1:BbxEP7iTXXGuUbmzsEjv5y5A6+DlBXyf7G5I4ojwzGc=",
+    version = "v0.0.0-20220204121609-8042f9d4a3c8",
+)
+
 gazelle_dependencies()
 
 ## go repo github.com/u2takey/ffmpeg-go

@@ -2,24 +2,15 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/ZalgoNoise/ipcam-stream/ipcam"
 )
 
 func Run() {
-	ipcam := ipcam.New()
-
-	request, err := getFlags()
+	ipcam, err := ipcam.New()
 	if err != nil {
-		fmt.Printf("[ipcam-stream] [Critical] failed to parse config:\n%s\n----\n", err)
-		os.Exit(1)
+		fmt.Printf("Unable to start service: %s", err)
 	}
 
-	err = ipcam.Capture(request)
-	if err != nil {
-		fmt.Printf("[ipcam-stream] [Critical] failed to initialize stream:\n%s\n----\n", err)
-		os.Exit(1)
-	}
-
+	ipcam.Capture(ipcam.Flags())
 }

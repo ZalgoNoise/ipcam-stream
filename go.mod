@@ -2,7 +2,10 @@ module github.com/ZalgoNoise/ipcam-stream
 
 go 1.17
 
-require github.com/u2takey/ffmpeg-go v0.4.0
+require (
+	github.com/ZalgoNoise/zlog v0.0.0-20220204121609-8042f9d4a3c8
+	github.com/u2takey/ffmpeg-go v0.4.0
+)
 
 require (
 	github.com/aws/aws-sdk-go v1.38.20 // indirect
