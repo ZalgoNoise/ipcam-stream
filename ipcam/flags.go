@@ -90,5 +90,5 @@ func (s *StreamService) logfileHandler(path string) {
 		log.New("ipcam-stream", &log.JSONFmt{}, logf),
 	)
 
-	s.Log.SetPrefix("ipcam-stream: logfileHandler()").Info("added logfile as from input: %s\n", path)
+	s.Log.SetPrefix("ipcam-stream: logfileHandler()").Infof("added logfile as from input: %s\n", path)
 }
