@@ -139,9 +139,14 @@ func (s *StreamService) newCaptureResponse(req *StreamRequest) {
 		go dir.rotate(now, req.Rotate)
 
 		s.Stream = &SplitStream{
-			audio:   &Stream{},
-			video:   &Stream{},
+			audio: &Stream{
+				logger: s.Log,
+			},
+			video: &Stream{
+				logger: s.Log,
+			},
 			outPath: req.OutDir + folderDate + "/" + fileDate + req.OutExt,
+			logger:  s.Log,
 		}
 
 		s.Log.Debug("starting to capture audio/video HTTP stream")
