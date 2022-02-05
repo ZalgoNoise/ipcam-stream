@@ -12,6 +12,6 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_u2takey_ffmpeg_go//:ffmpeg-go",
-        "@com_github_zalgonoise_zlog//log:go_default_library",
+        "@com_github_zalgonoise_zlog//log",
     ],
 )
