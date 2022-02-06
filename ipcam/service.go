@@ -73,6 +73,7 @@ func (s *StreamService) Capture(req *StreamRequest) {
 			"extension": req.OutExt,
 			"videoRate": req.VideoRate,
 			"rotate":    req.Rotate,
+			"log":       req.Logfile,
 		},
 	).Info("new capture request")
 
