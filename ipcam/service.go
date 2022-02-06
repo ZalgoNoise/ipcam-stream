@@ -39,7 +39,7 @@ type StreamResponse struct {
 	Logfile   string `json:"log,omitemtpy"`
 }
 
-var std = log.New("ipcam-stream", &log.TextFmt{})
+var std = log.New("ipcam-stream", log.TextFormat)
 
 func New(loggers ...log.LoggerI) (*StreamService, error) {
 	// init multilogger

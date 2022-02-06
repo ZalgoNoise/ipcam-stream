@@ -87,7 +87,7 @@ func (s *StreamService) logfileHandler(path string) {
 
 	s.Log = log.MultiLogger(
 		s.Log,
-		log.New("ipcam-stream", &log.JSONFmt{}, logf),
+		log.New("ipcam-stream", log.JSONFormat, logf),
 	)
 
 	s.Log.SetPrefix("ipcam-stream: logfileHandler()").Infof("added logfile as from input: %s\n", path)
