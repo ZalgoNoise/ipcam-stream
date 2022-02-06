@@ -48,14 +48,14 @@ func (s *StreamService) Flags() *StreamRequest {
 	if *inputCfgFile != "" {
 		cfg := &StreamRequest{}
 
-		s.Log.Debugf("reading config file %s\n", *inputCfgFile)
+		s.Log.Debugf("reading config file %s", *inputCfgFile)
 		data, err := os.ReadFile(*inputCfgFile)
 		if err != nil {
-			s.Log.Fatalf("unable to read file with error: %s\n", err)
+			s.Log.Fatalf("unable to read file with error: %s", err)
 		}
 
 		if err := json.Unmarshal(data, cfg); err != nil {
-			s.Log.Fatalf("unable to parse JSON data: %s\n", err)
+			s.Log.Fatalf("unable to parse JSON data: %s", err)
 		}
 
 		if cfg.Logfile != "" {
@@ -82,7 +82,7 @@ func (s *StreamService) Flags() *StreamRequest {
 func (s *StreamService) logfileHandler(path string) {
 	logf, err := log.NewLogfile(path)
 	if err != nil {
-		s.Log.Fatalf("failed to setup logfile %s with error: %s\n", path, err)
+		s.Log.Fatalf("failed to setup logfile %s with error: %s", path, err)
 	}
 
 	s.Log = log.MultiLogger(
@@ -90,5 +90,5 @@ func (s *StreamService) logfileHandler(path string) {
 		log.New("ipcam-stream", log.JSONFormat, logf),
 	)
 
-	s.Log.SetPrefix("ipcam-stream: logfileHandler()").Infof("added logfile as from input: %s\n", path)
+	s.Log.SetPrefix("ipcam-stream: logfileHandler()").Infof("added logfile as from input: %s", path)
 }
