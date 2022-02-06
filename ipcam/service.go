@@ -83,14 +83,14 @@ func (s *StreamService) Capture(req *StreamRequest) {
 	s.Log.Debug("loading cache")
 	err := cache.load(s.request.TmpDir)
 	if err != nil {
-		s.Log.Fatalf("failed to load cache: %s\n", err)
+		s.Log.Fatalf("failed to load cache: %s", err)
 	}
 
 	s.Log.Debug("clearing existing cache")
 	errList := cache.clear()
 	if len(errList) > 0 {
 		for _, err := range errList {
-			s.Log.Errorf("failed to clear cache: %s\n", err)
+			s.Log.Errorf("failed to clear cache: %s", err)
 		}
 	}
 
@@ -122,20 +122,20 @@ func (s *StreamService) newCaptureResponse(req *StreamRequest) {
 		folderDate := now.Format("2006-01-02")
 		fileDate := now.Format("2006-01-02-15-04-05")
 
-		s.Log.Debugf("setting stream timestamp: %s\n", fileDate)
+		s.Log.Debugf("setting stream timestamp: %s", fileDate)
 
-		s.Log.Debugf("loading output directory: %s\n", req.OutDir)
+		s.Log.Debugf("loading output directory: %s", req.OutDir)
 		dir := &dir{}
 		if err := dir.load(req.OutDir); err != nil {
-			s.Log.Fatalf("unable to load output directory: %s\n", err)
+			s.Log.Fatalf("unable to load output directory: %s", err)
 		}
 
 		if !dir.exists(folderDate) {
-			s.Log.Debugf("creating new output folder: %s\n", req.OutDir+folderDate)
+			s.Log.Debugf("creating new output folder: %s", req.OutDir+folderDate)
 			dir.mkdir(folderDate)
 		}
 
-		s.Log.Debugf("started rotate routine; set to: %v days\n", req.Rotate)
+		s.Log.Debugf("started rotate routine; set to: %v days", req.Rotate)
 		go dir.rotate(now, req.Rotate)
 
 		s.Stream = &SplitStream{
@@ -156,10 +156,10 @@ func (s *StreamService) newCaptureResponse(req *StreamRequest) {
 		s.Stream.audio.SetOutput(req.TmpDir + "a-" + fileDate + "_temp.mp4")
 		s.Stream.video.SetOutput(req.TmpDir + "v-" + fileDate + "_temp.mp4")
 
-		s.Log.Debugf("stream timing out in %v minutes\n", req.TimeLen)
+		s.Log.Debugf("stream timing out in %v minutes", req.TimeLen)
 		s.Stream.SyncTimeout(time.Minute * time.Duration(req.TimeLen))
 
-		s.Log.Debugf("merging stream, with %v fps video rate\n", req.VideoRate)
+		s.Log.Debugf("merging stream, with %v fps video rate", req.VideoRate)
 		go s.Stream.Merge(req.VideoRate)
 	}
 
