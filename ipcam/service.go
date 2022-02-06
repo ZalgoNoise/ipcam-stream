@@ -24,7 +24,7 @@ type StreamRequest struct {
 	OutExt    string `json:"extension,omitempty"`
 	VideoRate string `json:"videoRate,omitempty"`
 	Rotate    int    `json:"rotate,omitempty"`
-	Logfile   string `json:"log,omitemtpy"`
+	Logfile   string `json:"log,omitempty"`
 }
 
 type StreamResponse struct {
@@ -36,7 +36,7 @@ type StreamResponse struct {
 	OutExt    string `json:"extension,omitempty"`
 	VideoRate string `json:"videoRate,omitempty"`
 	Rotate    int    `json:"rotate,omitempty"`
-	Logfile   string `json:"log,omitemtpy"`
+	Logfile   string `json:"log,omitempty"`
 }
 
 var std = log.New("ipcam-stream", log.TextFormat)
