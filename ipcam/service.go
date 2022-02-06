@@ -9,10 +9,10 @@ import (
 )
 
 type StreamService struct {
-	request  *StreamRequest
-	response *StreamResponse
-	Stream   *SplitStream
-	Log      log.LoggerI
+	request *StreamRequest
+	// response *StreamResponse
+	Stream *SplitStream
+	Log    log.LoggerI
 }
 
 type StreamRequest struct {
@@ -27,17 +27,17 @@ type StreamRequest struct {
 	Logfile   string `json:"log,omitempty"`
 }
 
-type StreamResponse struct {
-	TimeLen   int    `json:"length,omitempty"`
-	VideoURL  string `json:"videoURL,omitempty"`
-	AudioURL  string `json:"audioURL,omitempty"`
-	TmpDir    string `json:"tmpDir,omitempty"`
-	OutDir    string `json:"outDir,omitempty"`
-	OutExt    string `json:"extension,omitempty"`
-	VideoRate string `json:"videoRate,omitempty"`
-	Rotate    int    `json:"rotate,omitempty"`
-	Logfile   string `json:"log,omitempty"`
-}
+// type StreamResponse struct {
+// 	TimeLen   int    `json:"length,omitempty"`
+// 	VideoURL  string `json:"videoURL,omitempty"`
+// 	AudioURL  string `json:"audioURL,omitempty"`
+// 	TmpDir    string `json:"tmpDir,omitempty"`
+// 	OutDir    string `json:"outDir,omitempty"`
+// 	OutExt    string `json:"extension,omitempty"`
+// 	VideoRate string `json:"videoRate,omitempty"`
+// 	Rotate    int    `json:"rotate,omitempty"`
+// 	Logfile   string `json:"log,omitempty"`
+// }
 
 var std = log.New("ipcam-stream", log.TextFormat)
 
