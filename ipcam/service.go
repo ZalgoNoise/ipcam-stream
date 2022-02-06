@@ -108,11 +108,11 @@ func (s *StreamService) newCaptureResponse(req *StreamRequest) {
 	signal.Notify(c, os.Interrupt)
 	go func(videoRate string) {
 		<-c
-		s.Log.Info("received signal interrupt -- merging cached files")
+		s.Log.SetPrefix("ipcam-stream: Capture()").Info("received signal interrupt -- merging cached files")
 
 		s.Stream.Merge(videoRate)
 
-		s.Log.Info("merge completed -- exiting")
+		s.Log.SetPrefix("ipcam-stream: Capture()").Info("merge completed -- exiting")
 		os.Exit(0)
 
 	}(req.VideoRate)
@@ -123,7 +123,7 @@ func (s *StreamService) newCaptureResponse(req *StreamRequest) {
 		folderDate := now.Format("2006-01-02")
 		fileDate := now.Format("2006-01-02-15-04-05")
 
-		s.Log.Debugf("setting stream timestamp: %s", fileDate)
+		s.Log.SetPrefix("ipcam-stream: Capture()").Debugf("setting stream timestamp: %s", fileDate)
 
 		s.Log.Debugf("loading output directory: %s", req.OutDir)
 		dir := &dir{}
