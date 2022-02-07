@@ -133,5 +133,4 @@ func (s *StreamService) logfileHandler(path string) {
 		Level:  log.LLDebug,
 		Msg:    fmt.Sprintf("added logfile as from input: %s", path),
 	}
-	s.Log.SetPrefix("ipcam-stream: logfileHandler()").Infof("added logfile as from input: %s", path)
 }
