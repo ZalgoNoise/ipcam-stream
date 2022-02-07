@@ -269,8 +269,8 @@ go_repository(
 go_repository(
     name = "com_github_zalgonoise_zlog",
     importpath = "github.com/ZalgoNoise/zlog",
-    sum = "h1:qOTYxFkA32+SlZPAd9gjA8t7LbQO8Kc5kmXnOYSMIXE=",
-    version = "v0.0.0-20220206111328-8a165b5f382d",
+    sum = "h1:HI2Y9PK/4qbSGVbxJE5EVIOaeDZV9VThC3CGvMem+8c=",
+    version = "v0.0.0-20220207115857-dddd26b9bc21",
 )
 
 go_repository(

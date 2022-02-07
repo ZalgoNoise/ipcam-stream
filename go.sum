@@ -2,6 +2,8 @@ github.com/ZalgoNoise/zlog v0.0.0-20220206105423-c1b9c1b8f3c7 h1:KI6OFdmIE68gSgI
 github.com/ZalgoNoise/zlog v0.0.0-20220206105423-c1b9c1b8f3c7/go.mod h1:kvYFxSIl5Va1DDIzM44uiV9lhp+h4yy2TCsTF/a/kew=
 github.com/ZalgoNoise/zlog v0.0.0-20220206111328-8a165b5f382d h1:qOTYxFkA32+SlZPAd9gjA8t7LbQO8Kc5kmXnOYSMIXE=
 github.com/ZalgoNoise/zlog v0.0.0-20220206111328-8a165b5f382d/go.mod h1:kvYFxSIl5Va1DDIzM44uiV9lhp+h4yy2TCsTF/a/kew=
+github.com/ZalgoNoise/zlog v0.0.0-20220207115857-dddd26b9bc21 h1:HI2Y9PK/4qbSGVbxJE5EVIOaeDZV9VThC3CGvMem+8c=
+github.com/ZalgoNoise/zlog v0.0.0-20220207115857-dddd26b9bc21/go.mod h1:kvYFxSIl5Va1DDIzM44uiV9lhp+h4yy2TCsTF/a/kew=
 github.com/aws/aws-sdk-go v1.38.20/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
 github.com/aws/aws-sdk-go v1.42.47 h1:Faabrbp+bOBiZjHje7Hbhvni212aQYQIXZMruwkgmmA=
 github.com/aws/aws-sdk-go v1.42.47/go.mod h1:OGr6lGMAKGlG9CVrYnWYDKIyb829c6EVBRjxqjmPepc=
