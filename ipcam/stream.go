@@ -64,24 +64,27 @@ func (s *Stream) SetOutput(out string) {
 }
 
 func (s *Stream) Close() {
+	defer logPanics(s.logger)
 	s.output.Close()
 	s.source.Close()
 }
 
 func (s *Stream) Copy() {
+	defer logPanics(s.logger)
 	io.Copy(s.output, s.source)
 }
 
 func (s *Stream) CopyTimeout(wait time.Duration) {
+	defer logPanics(s.logger)
 	defer s.Close()
 	go s.Copy()
 	time.Sleep(wait)
 }
 
 func (s *SplitStream) SyncTimeout(wait time.Duration) {
+	defer logPanics(s.logger)
 	defer s.video.Close()
 	defer s.audio.Close()
-	defer logPanics(s)
 	go io.Copy(s.audio.output, s.audio.source)
 	go io.Copy(s.video.output, s.video.source)
 	time.Sleep(wait)
@@ -179,9 +182,9 @@ func (s *SplitStream) Cleanup() []error {
 	return errs
 }
 
-func logPanics(s *SplitStream) {
+func logPanics(logger log.LoggerI) {
 	if r := recover(); r != nil {
-		s.logger.SetPrefix("ipcam-stream").Fields(
+		logger.SetPrefix("ipcam-stream").Fields(
 			map[string]interface{}{
 				"error":   r,
 				"service": "goroutine error",
