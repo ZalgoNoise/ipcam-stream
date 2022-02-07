@@ -3,13 +3,15 @@ package ipcam
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"os"
 
 	"github.com/ZalgoNoise/zlog/log"
 )
 
 func (s *StreamService) Flags() *StreamRequest {
-	s.Log.SetPrefix("ipcam-stream: Flags()")
+
+	// s.Log.SetPrefix("ipcam-stream: Flags()")
 
 	inputLen := flag.Int("len", 60, "Length (in minutes) for each video chunk")
 	inputVideoURL := flag.String("vurl", "", "Video's URL endpoint")
@@ -30,8 +32,11 @@ func (s *StreamService) Flags() *StreamRequest {
 		s.logfileHandler(*inputLogfile)
 	}
 
-	s.Log.Fields(
-		map[string]interface{}{
+	LogCh <- log.ChLogMessage{
+		Prefix: "ipcam-stream: Flags()",
+		Level:  log.LLInfo,
+		Msg:    "parsed flags from CLI",
+		Metadata: map[string]interface{}{
 			"len":    *inputLen,
 			"vurl":   *inputVideoURL,
 			"aurl":   *inputAudioURL,
@@ -43,27 +48,51 @@ func (s *StreamService) Flags() *StreamRequest {
 			"log":    *inputLogfile,
 			"cfg":    *inputCfgFile,
 		},
-	).Infof("parsed flags from CLI")
+	}
 
 	if *inputCfgFile != "" {
 		cfg := &StreamRequest{}
 
-		s.Log.Debugf("reading config file %s", *inputCfgFile)
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: Flags()",
+			Level:  log.LLDebug,
+			Msg:    fmt.Sprintf("reading config file %s", *inputCfgFile),
+		}
+
 		data, err := os.ReadFile(*inputCfgFile)
 		if err != nil {
-			s.Log.Fatalf("unable to read file with error: %s", err)
+
+			LogCh <- log.ChLogMessage{
+				Prefix: "ipcam-stream: Flags()",
+				Level:  log.LLFatal,
+				Msg:    "unable to read file",
+				Metadata: map[string]interface{}{
+					"error": err.Error(),
+				},
+			}
 		}
 
 		if err := json.Unmarshal(data, cfg); err != nil {
-			s.Log.Fatalf("unable to parse JSON data: %s", err)
+
+			LogCh <- log.ChLogMessage{
+				Prefix: "ipcam-stream: Flags()",
+				Level:  log.LLFatal,
+				Msg:    "unable to parse JSON data",
+				Metadata: map[string]interface{}{
+					"error": err.Error(),
+				},
+			}
 		}
 
 		if cfg.Logfile != "" {
 			s.logfileHandler(cfg.Logfile)
 		}
 
-		s.Log.Info("read config from file successfully")
-
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: Flags()",
+			Level:  log.LLInfo,
+			Msg:    "read config from file successfully",
+		}
 		return cfg
 	}
 
@@ -82,7 +111,16 @@ func (s *StreamService) Flags() *StreamRequest {
 func (s *StreamService) logfileHandler(path string) {
 	logf, err := log.NewLogfile(path)
 	if err != nil {
-		s.Log.Fatalf("failed to setup logfile %s with error: %s", path, err)
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: logfileHandler()",
+			Level:  log.LLFatal,
+			Msg:    "failed to setup logfile",
+			Metadata: map[string]interface{}{
+				"error": err.Error(),
+				"path":  path,
+			},
+		}
+
 	}
 
 	s.Log = log.MultiLogger(
@@ -90,5 +128,10 @@ func (s *StreamService) logfileHandler(path string) {
 		log.New("ipcam-stream", log.JSONFormat, logf),
 	)
 
+	LogCh <- log.ChLogMessage{
+		Prefix: "ipcam-stream: logfileHandler()",
+		Level:  log.LLDebug,
+		Msg:    fmt.Sprintf("added logfile as from input: %s", path),
+	}
 	s.Log.SetPrefix("ipcam-stream: logfileHandler()").Infof("added logfile as from input: %s", path)
 }

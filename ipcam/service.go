@@ -1,12 +1,15 @@
 package ipcam
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"time"
 
 	"github.com/ZalgoNoise/zlog/log"
 )
+
+var LogCh = make(chan log.ChLogMessage)
 
 type StreamService struct {
 	request *StreamRequest
@@ -49,22 +52,42 @@ func New(loggers ...log.LoggerI) (*StreamService, error) {
 
 	logger := log.MultiLogger(loggers...)
 
-	logger.SetPrefix("ipcam-stream: New()").Info("service initialized")
-
-	return &StreamService{
+	service := &StreamService{
 		request: &StreamRequest{},
 		Log:     logger,
-	}, nil
+	}
+
+	go func() {
+		for {
+			msg, ok := <-LogCh
+			if ok {
+				service.Log.SetPrefix(msg.Prefix).Fields(msg.Metadata).Log(msg.Level, msg.Msg)
+			} else {
+				service.Log.SetPrefix("ipcam-stream: Logger").Log(log.LLInfo, "logger channel is closed")
+				break
+			}
+		}
+	}()
+
+	LogCh <- log.ChLogMessage{
+		Prefix: "ipcam-stream: New()",
+		Level:  log.LLInfo,
+		Msg:    "service initialized",
+	}
+
+	return service, nil
 }
 
 func (s *StreamService) Capture(req *StreamRequest) {
-	s.Log.SetPrefix("ipcam-stream: Capture()")
 
 	//TODO: validate input
 	s.request = req
 
-	s.Log.Fields(
-		map[string]interface{}{
+	LogCh <- log.ChLogMessage{
+		Prefix: "ipcam-stream: Capture()",
+		Level:  log.LLInfo,
+		Msg:    "new capture request",
+		Metadata: map[string]interface{}{
 			"length":    req.TimeLen,
 			"videoURL":  req.VideoURL,
 			"audioURL":  req.AudioURL,
@@ -75,44 +98,83 @@ func (s *StreamService) Capture(req *StreamRequest) {
 			"rotate":    req.Rotate,
 			"log":       req.Logfile,
 		},
-	).Info("new capture request")
+	}
 
 	// initialize service
 	//  - clear cache
 	cache := &cache{}
 
-	s.Log.Debug("loading cache")
-	err := cache.load(s.request.TmpDir)
-	if err != nil {
-		s.Log.Fatalf("failed to load cache: %s", err)
+	LogCh <- log.ChLogMessage{
+		Prefix: "ipcam-stream: Capture()",
+		Level:  log.LLDebug,
+		Msg:    "loading cache",
 	}
 
-	s.Log.Debug("clearing existing cache")
+	err := cache.load(s.request.TmpDir)
+	if err != nil {
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: Capture()",
+			Level:  log.LLFatal,
+			Msg:    "failed to load cache",
+			Metadata: map[string]interface{}{
+				"error": err.Error(),
+			},
+		}
+
+	}
+
+	LogCh <- log.ChLogMessage{
+		Prefix: "ipcam-stream: Capture()",
+		Level:  log.LLDebug,
+		Msg:    "clearing existing cache",
+	}
+
 	errList := cache.clear()
 	if len(errList) > 0 {
 		for _, err := range errList {
-			s.Log.Errorf("failed to clear cache: %s", err)
+			LogCh <- log.ChLogMessage{
+				Prefix: "ipcam-stream: Capture()",
+				Level:  log.LLError,
+				Msg:    "failed to clear cache",
+				Metadata: map[string]interface{}{
+					"error": err.Error(),
+				},
+			}
+
 		}
 	}
 
-	s.Log.Debug("cache is ready; starting capture")
+	LogCh <- log.ChLogMessage{
+		Prefix: "ipcam-stream: Capture()",
+		Level:  log.LLDebug,
+		Msg:    "cache is ready; starting capture",
+	}
+
 	s.newCaptureResponse(s.request)
 
 }
 
 func (s *StreamService) newCaptureResponse(req *StreamRequest) {
-	s.Log.SetPrefix("ipcam-stream: Capture()")
-
 	// handle signal: interrupt
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	go func(videoRate string) {
 		<-c
-		s.Log.SetPrefix("ipcam-stream: Capture()").Info("received signal interrupt -- merging cached files")
+
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: Capture()",
+			Level:  log.LLInfo,
+			Msg:    "received signal interrupt -- merging cached files",
+		}
 
 		s.Stream.Merge(videoRate)
 
-		s.Log.SetPrefix("ipcam-stream: Capture()").Info("merge completed -- exiting")
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: Capture()",
+			Level:  log.LLInfo,
+			Msg:    "merge completed -- exiting",
+		}
+
 		os.Exit(0)
 
 	}(req.VideoRate)
@@ -123,44 +185,79 @@ func (s *StreamService) newCaptureResponse(req *StreamRequest) {
 		folderDate := now.Format("2006-01-02")
 		fileDate := now.Format("2006-01-02-15-04-05")
 
-		s.Log.SetPrefix("ipcam-stream: Capture()").Debugf("setting stream timestamp: %s", fileDate)
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: Capture()",
+			Level:  log.LLDebug,
+			Msg:    fmt.Sprintf("setting stream timestamp: %s", fileDate),
+		}
 
-		s.Log.Debugf("loading output directory: %s", req.OutDir)
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: Capture()",
+			Level:  log.LLDebug,
+			Msg:    fmt.Sprintf("loading output directory: %s", req.OutDir),
+		}
+
 		dir := &dir{}
 		if err := dir.load(req.OutDir); err != nil {
-			s.Log.Fatalf("unable to load output directory: %s", err)
+
+			LogCh <- log.ChLogMessage{
+				Prefix: "ipcam-stream: Capture()",
+				Level:  log.LLFatal,
+				Msg:    "unable to load output directory",
+				Metadata: map[string]interface{}{
+					"error": err.Error(),
+				},
+			}
 		}
 
 		if !dir.exists(folderDate) {
-			s.Log.Debugf("creating new output folder: %s", req.OutDir+folderDate)
+			LogCh <- log.ChLogMessage{
+				Prefix: "ipcam-stream: Capture()",
+				Level:  log.LLDebug,
+				Msg:    fmt.Sprintf("creating new output folder: %s", req.OutDir+folderDate),
+			}
 			dir.mkdir(folderDate)
 		}
 
-		s.Log.Debugf("started rotate routine; set to: %v days", req.Rotate)
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: Capture()",
+			Level:  log.LLDebug,
+			Msg:    fmt.Sprintf("started rotate routine; set to: %v days", req.Rotate),
+		}
 		go dir.rotate(now, req.Rotate)
 
 		s.Stream = &SplitStream{
-			audio: &Stream{
-				logger: s.Log,
-			},
-			video: &Stream{
-				logger: s.Log,
-			},
+			audio:   &Stream{},
+			video:   &Stream{},
 			outPath: req.OutDir + folderDate + "/" + fileDate + req.OutExt,
-			logger:  s.Log,
 		}
 
-		s.Log.Debug("starting to capture audio/video HTTP stream")
-		go s.Stream.video.SetSource(req.VideoURL)
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: Capture()",
+			Level:  log.LLDebug,
+			Msg:    "starting to capture audio/video HTTP stream",
+		}
+
 		s.Stream.audio.SetSource(req.AudioURL)
+		s.Stream.video.SetSource(req.VideoURL)
 
 		s.Stream.audio.SetOutput(req.TmpDir + "a-" + fileDate + "_temp.mp4")
 		s.Stream.video.SetOutput(req.TmpDir + "v-" + fileDate + "_temp.mp4")
 
-		s.Log.Debugf("stream timing out in %v minutes", req.TimeLen)
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: Capture()",
+			Level:  log.LLDebug,
+			Msg:    fmt.Sprintf("stream timing out in %v minutes", req.TimeLen),
+		}
+
 		s.Stream.SyncTimeout(time.Minute * time.Duration(req.TimeLen))
 
-		s.Log.Debugf("merging stream, with %v fps video rate", req.VideoRate)
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: Capture()",
+			Level:  log.LLDebug,
+			Msg:    fmt.Sprintf("merging stream, with %v fps video rate", req.VideoRate),
+		}
+
 		go s.Stream.Merge(req.VideoRate)
 	}
 
