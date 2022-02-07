@@ -73,17 +73,17 @@ func (s *Stream) Copy() {
 }
 
 func (s *Stream) CopyTimeout(wait time.Duration) {
+	defer s.Close()
 	go s.Copy()
 	time.Sleep(wait)
-	s.Close()
 }
 
 func (s *SplitStream) SyncTimeout(wait time.Duration) {
+	defer s.video.Close()
+	defer s.audio.Close()
 	go io.Copy(s.audio.output, s.audio.source)
 	go io.Copy(s.video.output, s.video.source)
 	time.Sleep(wait)
-	s.audio.Close()
-	s.video.Close()
 }
 
 func (s *SplitStream) Merge(videoRate string) {
