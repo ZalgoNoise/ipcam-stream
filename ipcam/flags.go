@@ -11,8 +11,6 @@ import (
 
 func (s *StreamService) Flags() *StreamRequest {
 
-	// s.Log.SetPrefix("ipcam-stream: Flags()")
-
 	inputLen := flag.Int("len", 60, "Length (in minutes) for each video chunk")
 	inputVideoURL := flag.String("vurl", "", "Video's URL endpoint")
 	inputAudioURL := flag.String("aurl", "", "Audio's URL endpoint")
@@ -92,8 +90,21 @@ func (s *StreamService) Flags() *StreamRequest {
 			Prefix: "ipcam-stream: Flags()",
 			Level:  log.LLInfo,
 			Msg:    "read config from file successfully",
+			Metadata: map[string]interface{}{
+				"len":    cfg.TimeLen,
+				"vurl":   cfg.VideoURL,
+				"aurl":   cfg.AudioURL,
+				"tmp":    cfg.TmpDir,
+				"out":    cfg.OutDir,
+				"ext":    cfg.OutExt,
+				"vrate":  cfg.VideoRate,
+				"rotate": cfg.Rotate,
+				"log":    cfg.Logfile,
+				"cfg":    *inputCfgFile,
+			},
 		}
 		return cfg
+
 	}
 
 	return &StreamRequest{
@@ -109,7 +120,14 @@ func (s *StreamService) Flags() *StreamRequest {
 }
 
 func (s *StreamService) logfileHandler(path string) {
+	LogCh <- log.ChLogMessage{
+		Prefix: "ipcam-stream: logfileHandler()",
+		Level:  log.LLDebug,
+		Msg:    fmt.Sprintf("reading logfile as from input: %s", path),
+	}
+
 	logf, err := log.NewLogfile(path)
+
 	if err != nil {
 		LogCh <- log.ChLogMessage{
 			Prefix: "ipcam-stream: logfileHandler()",
@@ -120,17 +138,16 @@ func (s *StreamService) logfileHandler(path string) {
 				"path":  path,
 			},
 		}
-
 	}
-
-	s.Log = log.MultiLogger(
-		s.Log,
-		log.New("ipcam-stream", log.JSONFormat, logf),
-	)
 
 	LogCh <- log.ChLogMessage{
 		Prefix: "ipcam-stream: logfileHandler()",
 		Level:  log.LLDebug,
 		Msg:    fmt.Sprintf("added logfile as from input: %s", path),
 	}
+
+	s.Log = log.MultiLogger(
+		s.Log,
+		log.New("ipcam-stream", log.JSONFormat, logf),
+	)
 }

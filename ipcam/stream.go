@@ -98,6 +98,7 @@ func (s *Stream) Copy() {
 
 		err := s.output.Close()
 		if err != nil {
+
 			LogCh <- log.ChLogMessage{
 				Prefix: "ipcam-stream: Copy()",
 				Level:  log.LLError,
@@ -109,6 +110,7 @@ func (s *Stream) Copy() {
 		}
 		err = s.source.Close()
 		if err != nil {
+
 			LogCh <- log.ChLogMessage{
 				Prefix: "ipcam-stream: Copy()",
 				Level:  log.LLError,
@@ -143,16 +145,16 @@ func (s *Stream) Copy() {
 				"copiedBits": n,
 			},
 		}
-	}
-
-	LogCh <- log.ChLogMessage{
-		Prefix: "ipcam-stream: Copy()",
-		Level:  log.LLDebug,
-		Msg:    "copied data successfully",
-		Metadata: map[string]interface{}{
-			"path":       s.outPath,
-			"copiedBits": n,
-		},
+	} else {
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: Copy()",
+			Level:  log.LLDebug,
+			Msg:    "copied data successfully",
+			Metadata: map[string]interface{}{
+				"path":       s.outPath,
+				"copiedBits": n,
+			},
+		}
 	}
 }
 
@@ -234,7 +236,7 @@ func (s *SplitStream) Merge(videoRate string) {
 
 	LogCh <- log.ChLogMessage{
 		Prefix: "ipcam-stream: Merge()",
-		Level:  log.LLDebug,
+		Level:  log.LLInfo,
 		Msg:    "cleaning up cached files",
 		Metadata: map[string]interface{}{
 			"cache": map[string]interface{}{

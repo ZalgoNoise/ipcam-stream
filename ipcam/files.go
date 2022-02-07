@@ -1,10 +1,11 @@
 package ipcam
 
 import (
-	"fmt"
 	"io/fs"
 	"os"
 	"time"
+
+	"github.com/ZalgoNoise/zlog/log"
 )
 
 type cache struct {
@@ -19,6 +20,15 @@ func (c *cache) load(path string) error {
 	c.files, err = fs.Glob(os.DirFS(path), "*")
 
 	if err != nil {
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: load()",
+			Level:  log.LLWarn,
+			Msg:    "failed to parse cache's glob path",
+			Metadata: map[string]interface{}{
+				"error":  err.Error(),
+				"target": path,
+			},
+		}
 		return err
 	}
 
@@ -37,6 +47,15 @@ func (c *cache) clear() []error {
 
 	for _, file := range c.files {
 		if err := os.RemoveAll(c.root + file); err != nil {
+			LogCh <- log.ChLogMessage{
+				Prefix: "ipcam-stream: clear()",
+				Level:  log.LLWarn,
+				Msg:    "failed to remove target file",
+				Metadata: map[string]interface{}{
+					"error":  err.Error(),
+					"target": c.root + file,
+				},
+			}
 			errs = append(errs, err)
 		}
 	}
@@ -57,6 +76,15 @@ func (d *dir) load(path string) error {
 	d.dirs, err = fs.Glob(os.DirFS(path), "*")
 
 	if err != nil {
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: load()",
+			Level:  log.LLWarn,
+			Msg:    "failed to parse glob path",
+			Metadata: map[string]interface{}{
+				"error":  err.Error(),
+				"target": path,
+			},
+		}
 		return err
 	}
 
@@ -94,6 +122,15 @@ func (d *dir) listOlder(from time.Time, days int) ([]string, []error) {
 
 		t, err := time.Parse("2006-01-02", folder)
 		if err != nil {
+			LogCh <- log.ChLogMessage{
+				Prefix: "ipcam-stream: listOlder()",
+				Level:  log.LLWarn,
+				Msg:    "failed to parse folder name",
+				Metadata: map[string]interface{}{
+					"error":  err.Error(),
+					"target": folder,
+				},
+			}
 			errs = append(errs, err)
 			continue
 		}
@@ -110,13 +147,28 @@ func (d *dir) rotate(from time.Time, days int) {
 
 	for _, target := range targets {
 		if err := os.RemoveAll(d.root + target); err != nil {
-			errs = append(errs, err)
+			LogCh <- log.ChLogMessage{
+				Prefix: "ipcam-stream: rotate()",
+				Level:  log.LLWarn,
+				Msg:    "failed to remove old stream files",
+				Metadata: map[string]interface{}{
+					"error":  err.Error(),
+					"target": d.root + target,
+				},
+			}
 		}
 	}
 
 	if len(errs) > 0 {
 		for _, err := range errs {
-			fmt.Printf("[ipcam-stream] [rotate] ERR: %s\n", err)
+			LogCh <- log.ChLogMessage{
+				Prefix: "ipcam-stream: rotate()",
+				Level:  log.LLWarn,
+				Msg:    "failed to list stream files",
+				Metadata: map[string]interface{}{
+					"error": err.Error(),
+				},
+			}
 		}
 	}
 }
