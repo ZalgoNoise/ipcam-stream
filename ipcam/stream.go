@@ -86,24 +86,95 @@ func (s *Stream) Close() {
 }
 
 func (s *Stream) Copy() {
+	defer func() {
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: Copy()",
+			Level:  log.LLDebug,
+			Msg:    "closing inputs and outputs",
+			Metadata: map[string]interface{}{
+				"path": s.outPath,
+			},
+		}
+
+		err := s.output.Close()
+		if err != nil {
+			LogCh <- log.ChLogMessage{
+				Prefix: "ipcam-stream: Copy()",
+				Level:  log.LLError,
+				Msg:    "error closing output file",
+				Metadata: map[string]interface{}{
+					"path": s.outPath,
+				},
+			}
+		}
+		err = s.source.Close()
+		if err != nil {
+			LogCh <- log.ChLogMessage{
+				Prefix: "ipcam-stream: Copy()",
+				Level:  log.LLError,
+				Msg:    "error closing source stream",
+				Metadata: map[string]interface{}{
+					"path": s.outPath,
+				},
+			}
+		}
+	}()
+
 	defer logPanics()
-	io.Copy(s.output, s.source)
+
+	LogCh <- log.ChLogMessage{
+		Prefix: "ipcam-stream: Copy()",
+		Level:  log.LLDebug,
+		Msg:    "copying data stream to file",
+		Metadata: map[string]interface{}{
+			"path": s.outPath,
+		},
+	}
+
+	n, err := io.Copy(s.output, s.source)
+	if err != nil {
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: Copy()",
+			Level:  log.LLError,
+			Msg:    "failed to copy data",
+			Metadata: map[string]interface{}{
+				"error":      err.Error(),
+				"path":       s.outPath,
+				"copiedBits": n,
+			},
+		}
+	}
+
+	LogCh <- log.ChLogMessage{
+		Prefix: "ipcam-stream: Copy()",
+		Level:  log.LLDebug,
+		Msg:    "copied data successfully",
+		Metadata: map[string]interface{}{
+			"path":       s.outPath,
+			"copiedBits": n,
+		},
+	}
 }
 
 func (s *Stream) CopyTimeout(wait time.Duration) {
 	defer logPanics()
-	defer s.Close()
 	go s.Copy()
 	time.Sleep(wait)
 }
 
 func (s *SplitStream) SyncTimeout(wait time.Duration) {
 	defer logPanics()
-	defer s.video.Close()
-	defer s.audio.Close()
-	go io.Copy(s.audio.output, s.audio.source)
-	go io.Copy(s.video.output, s.video.source)
+
+	go s.audio.Copy()
+	go s.video.Copy()
+
 	time.Sleep(wait)
+
+	LogCh <- log.ChLogMessage{
+		Prefix: "ipcam-stream: SyncTimeout()",
+		Level:  log.LLInfo,
+		Msg:    "stream timed out",
+	}
 }
 
 func (s *SplitStream) Merge(videoRate string) {

@@ -240,7 +240,6 @@ func (s *StreamService) newCaptureResponse(req *StreamRequest) {
 
 		s.Stream.audio.SetSource(req.AudioURL)
 		s.Stream.video.SetSource(req.VideoURL)
-
 		s.Stream.audio.SetOutput(req.TmpDir + "a-" + fileDate + "_temp.mp4")
 		s.Stream.video.SetOutput(req.TmpDir + "v-" + fileDate + "_temp.mp4")
 
