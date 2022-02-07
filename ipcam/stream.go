@@ -81,6 +81,7 @@ func (s *Stream) CopyTimeout(wait time.Duration) {
 func (s *SplitStream) SyncTimeout(wait time.Duration) {
 	defer s.video.Close()
 	defer s.audio.Close()
+	defer logPanics(s)
 	go io.Copy(s.audio.output, s.audio.source)
 	go io.Copy(s.video.output, s.video.source)
 	time.Sleep(wait)
@@ -176,4 +177,15 @@ func (s *SplitStream) Cleanup() []error {
 		errs = append(errs, err)
 	}
 	return errs
+}
+
+func logPanics(s *SplitStream) {
+	if r := recover(); r != nil {
+		s.logger.SetPrefix("ipcam-stream").Fields(
+			map[string]interface{}{
+				"error":   r,
+				"service": "goroutine error",
+			},
+		).Fatal("crashed due to a goroutine error")
+	}
 }
