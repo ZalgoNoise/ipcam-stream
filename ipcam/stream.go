@@ -3,6 +3,7 @@ package ipcam
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
@@ -24,6 +25,8 @@ type SplitStream struct {
 }
 
 func (s *Stream) SetSource(src string) {
+
+	defer logPanics("SetSource()")
 
 	LogCh <- log.ChLogMessage{
 		Prefix: "ipcam-stream: SetSource()",
@@ -47,6 +50,98 @@ func (s *Stream) SetSource(src string) {
 			},
 		}
 	}
+
+	if resp.StatusCode != 200 {
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: SetSource()",
+			Level:  log.LLFatal,
+			Msg:    "HTTP request returned a non-200 status code",
+			Metadata: map[string]interface{}{
+				"error":   "HTTP status code is not 200",
+				"service": "Stream.SetSource()",
+				"inputs": map[string]interface{}{
+					"source": src,
+				},
+				"response": map[string]interface{}{
+					"statusCode": resp.StatusCode,
+					"status":     resp.Status,
+					"dataLength": resp.ContentLength,
+					"headers":    resp.Header,
+					"cookies":    resp.Cookies,
+				},
+				"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
+			},
+		}
+	}
+
+	buf, err := ioutil.ReadAll(io.LimitReader(resp.Body, 128))
+	if err != nil {
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: SetSource()",
+			Level:  log.LLFatal,
+			Msg:    "error reading HTTP request body",
+			Metadata: map[string]interface{}{
+				"error":   err.Error(),
+				"service": "Stream.SetSource()",
+				"inputs": map[string]interface{}{
+					"source": src,
+				},
+				"response": map[string]interface{}{
+					"statusCode": resp.StatusCode,
+					"status":     resp.Status,
+					"dataLength": resp.ContentLength,
+					"headers":    resp.Header,
+					"cookies":    resp.Cookies,
+				},
+				"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
+			},
+		}
+	}
+
+	if len(buf) == 0 {
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: SetSource()",
+			Level:  log.LLFatal,
+			Msg:    "HTTP request has an empty body",
+			Metadata: map[string]interface{}{
+				"error":   err.Error(),
+				"service": "Stream.SetSource()",
+				"inputs": map[string]interface{}{
+					"source": src,
+				},
+				"response": map[string]interface{}{
+					"statusCode": resp.StatusCode,
+					"status":     resp.Status,
+					"dataLength": resp.ContentLength,
+					"headers":    resp.Header,
+					"cookies":    resp.Cookies,
+					"testRead":   len(buf),
+				},
+				"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
+			},
+		}
+	}
+
+	LogCh <- log.ChLogMessage{
+		Prefix: "ipcam-stream: SetSource()",
+		Level:  log.LLInfo,
+		Msg:    "HTTP request seems OK",
+		Metadata: map[string]interface{}{
+			"inputs": map[string]interface{}{
+				"source": src,
+			},
+			"response": map[string]interface{}{
+				"statusCode": resp.StatusCode,
+				"status":     resp.Status,
+				"dataLength": resp.ContentLength,
+				"headers":    resp.Header,
+				"cookies":    resp.Cookies,
+				"testRead":   len(buf),
+			},
+			"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
+		},
+	}
+
 	s.source = resp.Body
 }
 
@@ -80,12 +175,15 @@ func (s *Stream) SetOutput(out string) {
 }
 
 func (s *Stream) Close() {
-	defer logPanics()
+	defer logPanics("Close()")
 	s.output.Close()
 	s.source.Close()
 }
 
 func (s *Stream) Copy() {
+
+	defer logPanics("Copy()")
+
 	defer func() {
 		LogCh <- log.ChLogMessage{
 			Prefix: "ipcam-stream: Copy()",
@@ -122,8 +220,6 @@ func (s *Stream) Copy() {
 		}
 	}()
 
-	defer logPanics()
-
 	LogCh <- log.ChLogMessage{
 		Prefix: "ipcam-stream: Copy()",
 		Level:  log.LLDebug,
@@ -159,13 +255,13 @@ func (s *Stream) Copy() {
 }
 
 func (s *Stream) CopyTimeout(wait time.Duration) {
-	defer logPanics()
+	defer logPanics("CopyTimeout()")
 	go s.Copy()
 	time.Sleep(wait)
 }
 
 func (s *SplitStream) SyncTimeout(wait time.Duration) {
-	defer logPanics()
+	defer logPanics("SyncTimeout()")
 
 	go s.audio.Copy()
 	go s.video.Copy()
@@ -318,17 +414,18 @@ func (s *SplitStream) Cleanup() []error {
 	return errs
 }
 
-func logPanics() {
+func logPanics(service string) {
 	if r := recover(); r != nil {
 		LogCh <- log.ChLogMessage{
 			Prefix: "ipcam-stream",
-			Level:  log.LLFatal,
+			Level:  log.LLPanic,
 			Msg:    "crashed due to a goroutine error",
 			Metadata: map[string]interface{}{
 				"error":   r,
-				"service": "goroutine error",
+				"service": fmt.Sprintf("goroutine error - %s", service),
 			},
 		}
+		panic(r)
 	}
 
 }
