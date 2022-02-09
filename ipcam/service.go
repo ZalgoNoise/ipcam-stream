@@ -43,12 +43,12 @@ type StreamRequest struct {
 // }
 
 var std = log.MultiLogger(log.New("ipcam-stream", log.TextFormat))
-var Logger log.LoggerI
+var logger log.LoggerI
 
-func New(loggers ...log.LoggerI) (*StreamService, error) {
+func New(loggers ...log.LoggerI) *StreamService {
 	service := &StreamService{
 		request: &StreamRequest{},
-		Log:     Logger,
+		Log:     logger,
 	}
 
 	// init multilogger
@@ -76,7 +76,7 @@ func New(loggers ...log.LoggerI) (*StreamService, error) {
 		Msg:    "service initialized",
 	}
 
-	return service, nil
+	return service
 }
 
 func (s *StreamService) Capture(req *StreamRequest) {
