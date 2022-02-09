@@ -67,7 +67,6 @@ func (s *Stream) SetSource(src string) {
 					"status":     resp.Status,
 					"dataLength": resp.ContentLength,
 					"headers":    resp.Header,
-					"cookies":    resp.Cookies,
 				},
 				"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
 			},
@@ -91,7 +90,6 @@ func (s *Stream) SetSource(src string) {
 					"status":     resp.Status,
 					"dataLength": resp.ContentLength,
 					"headers":    resp.Header,
-					"cookies":    resp.Cookies,
 				},
 				"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
 			},
@@ -114,7 +112,6 @@ func (s *Stream) SetSource(src string) {
 					"status":     resp.Status,
 					"dataLength": resp.ContentLength,
 					"headers":    resp.Header,
-					"cookies":    resp.Cookies,
 					"testRead":   len(buf),
 				},
 				"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
@@ -124,7 +121,7 @@ func (s *Stream) SetSource(src string) {
 
 	LogCh <- log.ChLogMessage{
 		Prefix: "ipcam-stream: SetSource()",
-		Level:  log.LLInfo,
+		Level:  log.LLDebug,
 		Msg:    "HTTP request seems OK",
 		Metadata: map[string]interface{}{
 			"inputs": map[string]interface{}{
@@ -135,13 +132,11 @@ func (s *Stream) SetSource(src string) {
 				"status":     resp.Status,
 				"dataLength": resp.ContentLength,
 				"headers":    resp.Header,
-				"cookies":    resp.Cookies,
 				"testRead":   len(buf),
 			},
 			"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
 		},
 	}
-
 	s.source = resp.Body
 }
 
@@ -236,21 +231,31 @@ func (s *Stream) Copy() {
 			Level:  log.LLError,
 			Msg:    "failed to copy data",
 			Metadata: map[string]interface{}{
-				"error":      err.Error(),
-				"path":       s.outPath,
-				"copiedBits": n,
+				"error": err.Error(),
+				"path":  s.outPath,
 			},
 		}
-	} else {
+	}
+
+	if n == 0 {
 		LogCh <- log.ChLogMessage{
 			Prefix: "ipcam-stream: Copy()",
-			Level:  log.LLDebug,
-			Msg:    "copied data successfully",
+			Level:  log.LLError,
+			Msg:    "copy routine points to an empty buffer",
 			Metadata: map[string]interface{}{
-				"path":       s.outPath,
-				"copiedBits": n,
+				"error": "copied data is of length 0 bytes",
+				"path":  s.outPath,
 			},
 		}
+	}
+
+	LogCh <- log.ChLogMessage{
+		Prefix: "ipcam-stream: Copy()",
+		Level:  log.LLDebug,
+		Msg:    "copied data successfully",
+		Metadata: map[string]interface{}{
+			"path": s.outPath,
+		},
 	}
 }
 

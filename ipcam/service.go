@@ -42,19 +42,20 @@ type StreamRequest struct {
 // 	Logfile   string `json:"log,omitempty"`
 // }
 
-var std = log.New("ipcam-stream", log.TextFormat)
+var std = log.MultiLogger(log.New("ipcam-stream", log.TextFormat))
+var Logger log.LoggerI
 
 func New(loggers ...log.LoggerI) (*StreamService, error) {
-	// init multilogger
-	if len(loggers) == 0 {
-		loggers = []log.LoggerI{std}
-	}
-
-	logger := log.MultiLogger(loggers...)
-
 	service := &StreamService{
 		request: &StreamRequest{},
-		Log:     logger,
+		Log:     Logger,
+	}
+
+	// init multilogger
+	if len(loggers) == 0 {
+		service.Log = std
+	} else {
+		service.Log = log.MultiLogger(loggers...)
 	}
 
 	go func() {
