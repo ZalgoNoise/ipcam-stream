@@ -79,25 +79,23 @@ func New(loggers ...log.LoggerI) *StreamService {
 	return service
 }
 
-func (s *StreamService) Capture(req *StreamRequest) {
-
-	//TODO: validate input
-	s.request = req
+func (s *StreamService) Capture() {
+	s.request = s.Flags()
 
 	LogCh <- log.ChLogMessage{
 		Prefix: "ipcam-stream: Capture()",
 		Level:  log.LLInfo,
 		Msg:    "new capture request",
 		Metadata: map[string]interface{}{
-			"length":    req.TimeLen,
-			"videoURL":  req.VideoURL,
-			"audioURL":  req.AudioURL,
-			"tmpDir":    req.TmpDir,
-			"outDir":    req.OutDir,
-			"extension": req.OutExt,
-			"videoRate": req.VideoRate,
-			"rotate":    req.Rotate,
-			"log":       req.Logfile,
+			"length":    s.request.TimeLen,
+			"videoURL":  s.request.VideoURL,
+			"audioURL":  s.request.AudioURL,
+			"tmpDir":    s.request.TmpDir,
+			"outDir":    s.request.OutDir,
+			"extension": s.request.OutExt,
+			"videoRate": s.request.VideoRate,
+			"rotate":    s.request.Rotate,
+			"log":       s.request.Logfile,
 		},
 	}
 

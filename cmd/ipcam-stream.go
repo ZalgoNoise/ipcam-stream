@@ -5,7 +5,5 @@ import (
 )
 
 func Run() {
-	ipcam := ipcam.New()
-
-	ipcam.Capture(ipcam.Flags())
+	ipcam.New().Capture()
 }
