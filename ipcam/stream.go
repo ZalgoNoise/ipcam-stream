@@ -1,6 +1,7 @@
 package ipcam
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -34,76 +35,101 @@ func (s *Stream) SetSource(src string) {
 		Msg:    fmt.Sprintf("connecting to HTTP A/V stream on %s", src),
 	}
 
-	resp, err := http.Get(src)
-	if err != nil {
-		LogCh <- log.ChLogMessage{
-			Prefix: "ipcam-stream: SetSource()",
-			Level:  log.LLFatal,
-			Msg:    "failed to initialize HTTP stream",
-			Metadata: map[string]interface{}{
-				"error":   err.Error(),
-				"service": "Stream.SetSource()",
-				"inputs": map[string]interface{}{
-					"source": src,
+	n, err := ExpBackoff(time.Second*10, func() error {
+		resp, err := http.Get(src)
+		if err != nil {
+			LogCh <- log.ChLogMessage{
+				Prefix: "ipcam-stream: SetSource()",
+				Level:  log.LLError,
+				Msg:    "failed to initialize HTTP stream",
+				Metadata: map[string]interface{}{
+					"error":   err.Error(),
+					"service": "Stream.SetSource()",
+					"inputs": map[string]interface{}{
+						"source": src,
+					},
+					"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
 				},
-				"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
-			},
+			}
+			return err
 		}
-	}
 
-	if resp.StatusCode != 200 {
-		LogCh <- log.ChLogMessage{
-			Prefix: "ipcam-stream: SetSource()",
-			Level:  log.LLFatal,
-			Msg:    "HTTP request returned a non-200 status code",
-			Metadata: map[string]interface{}{
-				"error":   "HTTP status code is not 200",
-				"service": "Stream.SetSource()",
-				"inputs": map[string]interface{}{
-					"source": src,
+		if resp.StatusCode != 200 {
+			LogCh <- log.ChLogMessage{
+				Prefix: "ipcam-stream: SetSource()",
+				Level:  log.LLError,
+				Msg:    "HTTP request returned a non-200 status code",
+				Metadata: map[string]interface{}{
+					"error":   "HTTP status code is not 200",
+					"service": "Stream.SetSource()",
+					"inputs": map[string]interface{}{
+						"source": src,
+					},
+					"response": map[string]interface{}{
+						"statusCode": resp.StatusCode,
+						"status":     resp.Status,
+						"dataLength": resp.ContentLength,
+						"headers":    resp.Header,
+					},
+					"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
 				},
-				"response": map[string]interface{}{
-					"statusCode": resp.StatusCode,
-					"status":     resp.Status,
-					"dataLength": resp.ContentLength,
-					"headers":    resp.Header,
-				},
-				"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
-			},
+			}
+			return errors.New("HTTP request returned a non-200 status code")
 		}
-	}
 
-	buf, err := ioutil.ReadAll(io.LimitReader(resp.Body, 128))
-	if err != nil {
-		LogCh <- log.ChLogMessage{
-			Prefix: "ipcam-stream: SetSource()",
-			Level:  log.LLFatal,
-			Msg:    "error reading HTTP request body",
-			Metadata: map[string]interface{}{
-				"error":   err.Error(),
-				"service": "Stream.SetSource()",
-				"inputs": map[string]interface{}{
-					"source": src,
+		buf, err := ioutil.ReadAll(io.LimitReader(resp.Body, 128))
+		if err != nil {
+			LogCh <- log.ChLogMessage{
+				Prefix: "ipcam-stream: SetSource()",
+				Level:  log.LLError,
+				Msg:    "error reading HTTP request body",
+				Metadata: map[string]interface{}{
+					"error":   err.Error(),
+					"service": "Stream.SetSource()",
+					"inputs": map[string]interface{}{
+						"source": src,
+					},
+					"response": map[string]interface{}{
+						"statusCode": resp.StatusCode,
+						"status":     resp.Status,
+						"dataLength": resp.ContentLength,
+						"headers":    resp.Header,
+					},
+					"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
 				},
-				"response": map[string]interface{}{
-					"statusCode": resp.StatusCode,
-					"status":     resp.Status,
-					"dataLength": resp.ContentLength,
-					"headers":    resp.Header,
-				},
-				"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
-			},
+			}
+			return err
 		}
-	}
 
-	if len(buf) == 0 {
+		if len(buf) == 0 {
+			LogCh <- log.ChLogMessage{
+				Prefix: "ipcam-stream: SetSource()",
+				Level:  log.LLError,
+				Msg:    "HTTP request has an empty body",
+				Metadata: map[string]interface{}{
+					"error":   err.Error(),
+					"service": "Stream.SetSource()",
+					"inputs": map[string]interface{}{
+						"source": src,
+					},
+					"response": map[string]interface{}{
+						"statusCode": resp.StatusCode,
+						"status":     resp.Status,
+						"dataLength": resp.ContentLength,
+						"headers":    resp.Header,
+						"testRead":   len(buf),
+					},
+					"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
+				},
+			}
+			return errors.New("HTTP request has an empty body")
+		}
+
 		LogCh <- log.ChLogMessage{
 			Prefix: "ipcam-stream: SetSource()",
-			Level:  log.LLFatal,
-			Msg:    "HTTP request has an empty body",
+			Level:  log.LLDebug,
+			Msg:    "HTTP request seems OK",
 			Metadata: map[string]interface{}{
-				"error":   err.Error(),
-				"service": "Stream.SetSource()",
 				"inputs": map[string]interface{}{
 					"source": src,
 				},
@@ -117,27 +143,27 @@ func (s *Stream) SetSource(src string) {
 				"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
 			},
 		}
+		s.source = resp.Body
+		return nil
+	})
+
+	if err != nil {
+		LogCh <- log.ChLogMessage{
+			Prefix: "ipcam-stream: SetSource()",
+			Level:  log.LLFatal,
+			Msg:    "failed to initialize HTTP stream with exponential backoff",
+			Metadata: map[string]interface{}{
+				"error":   err.Error(),
+				"service": "Stream.SetSource()",
+				"inputs": map[string]interface{}{
+					"source": src,
+				},
+				"desc":        "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
+				"numAttempts": n,
+			},
+		}
 	}
 
-	LogCh <- log.ChLogMessage{
-		Prefix: "ipcam-stream: SetSource()",
-		Level:  log.LLDebug,
-		Msg:    "HTTP request seems OK",
-		Metadata: map[string]interface{}{
-			"inputs": map[string]interface{}{
-				"source": src,
-			},
-			"response": map[string]interface{}{
-				"statusCode": resp.StatusCode,
-				"status":     resp.Status,
-				"dataLength": resp.ContentLength,
-				"headers":    resp.Header,
-				"testRead":   len(buf),
-			},
-			"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
-		},
-	}
-	s.source = resp.Body
 }
 
 func (s *Stream) SetOutput(out string) {
