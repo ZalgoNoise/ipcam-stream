@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/ZalgoNoise/ipcam-stream/ipcam"
+	"github.com/zalgonoise/ipcam-stream/ipcam"
 )
 
 func Run() {

@@ -2,15 +2,14 @@ package ipcam
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/ZalgoNoise/zlog/log"
 	ffmpeg "github.com/u2takey/ffmpeg-go"
+	"github.com/zalgonoise/zlog/log"
 )
 
 type Stream struct {
@@ -29,107 +28,66 @@ func (s *Stream) SetSource(src string) {
 
 	defer logPanics("SetSource()")
 
-	LogCh <- log.ChLogMessage{
-		Prefix: "ipcam-stream: SetSource()",
-		Level:  log.LLDebug,
-		Msg:    fmt.Sprintf("connecting to HTTP A/V stream on %s", src),
-	}
+	logCh <- log.NewMessage().Level(log.LLDebug).Sub("SetSource()").Message("connecting to HTTP A/V stream").Metadata(log.Field{"addr": src}).Build()
 
 	n, err := ExpBackoff(time.Second*10, func() error {
 		resp, err := http.Get(src)
 		if err != nil {
-			LogCh <- log.ChLogMessage{
-				Prefix: "ipcam-stream: SetSource()",
-				Level:  log.LLError,
-				Msg:    "failed to initialize HTTP stream",
-				Metadata: map[string]interface{}{
-					"error":   err.Error(),
-					"service": "Stream.SetSource()",
-					"inputs": map[string]interface{}{
-						"source": src,
-					},
-					"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
+			logCh <- log.NewMessage().Level(log.LLError).Sub("SetSource()").Message("failed to initialize HTTP stream").Metadata(log.Field{
+				"error":   err.Error(),
+				"service": "Stream.SetSource()",
+				"inputs": map[string]interface{}{
+					"source": src,
 				},
-			}
+				"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
+			}).Build()
+
 			return err
 		}
 
 		if resp.StatusCode != 200 {
-			LogCh <- log.ChLogMessage{
-				Prefix: "ipcam-stream: SetSource()",
-				Level:  log.LLError,
-				Msg:    "HTTP request returned a non-200 status code",
-				Metadata: map[string]interface{}{
-					"error":   "HTTP status code is not 200",
-					"service": "Stream.SetSource()",
-					"inputs": map[string]interface{}{
-						"source": src,
-					},
-					"response": map[string]interface{}{
-						"statusCode": resp.StatusCode,
-						"status":     resp.Status,
-						"dataLength": resp.ContentLength,
-						"headers":    resp.Header,
-					},
-					"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
+			logCh <- log.NewMessage().Level(log.LLError).Sub("SetSource()").Message("HTTP request returned a non-200 status code").Metadata(log.Field{
+				"error":   "HTTP status code is not 200",
+				"service": "Stream.SetSource()",
+				"inputs": map[string]interface{}{
+					"source": src,
 				},
-			}
+				"response": map[string]interface{}{
+					"statusCode": resp.StatusCode,
+					"status":     resp.Status,
+					"dataLength": resp.ContentLength,
+					"headers":    resp.Header,
+				},
+				"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
+			}).Build()
+
 			return errors.New("HTTP request returned a non-200 status code")
 		}
 
 		buf, err := ioutil.ReadAll(io.LimitReader(resp.Body, 128))
 		if err != nil {
-			LogCh <- log.ChLogMessage{
-				Prefix: "ipcam-stream: SetSource()",
-				Level:  log.LLError,
-				Msg:    "error reading HTTP request body",
-				Metadata: map[string]interface{}{
-					"error":   err.Error(),
-					"service": "Stream.SetSource()",
-					"inputs": map[string]interface{}{
-						"source": src,
-					},
-					"response": map[string]interface{}{
-						"statusCode": resp.StatusCode,
-						"status":     resp.Status,
-						"dataLength": resp.ContentLength,
-						"headers":    resp.Header,
-					},
-					"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
+			logCh <- log.NewMessage().Level(log.LLError).Sub("SetSource()").Message("error reading HTTP request body").Metadata(log.Field{
+				"error":   err.Error(),
+				"service": "Stream.SetSource()",
+				"inputs": map[string]interface{}{
+					"source": src,
 				},
-			}
+				"response": map[string]interface{}{
+					"statusCode": resp.StatusCode,
+					"status":     resp.Status,
+					"dataLength": resp.ContentLength,
+					"headers":    resp.Header,
+				},
+				"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
+			}).Build()
+
 			return err
 		}
 
 		if len(buf) == 0 {
-			LogCh <- log.ChLogMessage{
-				Prefix: "ipcam-stream: SetSource()",
-				Level:  log.LLError,
-				Msg:    "HTTP request has an empty body",
-				Metadata: map[string]interface{}{
-					"error":   err.Error(),
-					"service": "Stream.SetSource()",
-					"inputs": map[string]interface{}{
-						"source": src,
-					},
-					"response": map[string]interface{}{
-						"statusCode": resp.StatusCode,
-						"status":     resp.Status,
-						"dataLength": resp.ContentLength,
-						"headers":    resp.Header,
-						"testRead":   len(buf),
-					},
-					"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
-				},
-			}
-			return errors.New("HTTP request has an empty body")
-		}
-
-		LogCh <- log.ChLogMessage{
-			Prefix: "ipcam-stream: SetSource()",
-			Level:  log.LLDebug,
-			Msg:    "HTTP request seems OK",
-			Metadata: map[string]interface{}{
+			logCh <- log.NewMessage().Level(log.LLError).Sub("SetSource()").Message("HTTP request has an empty body").Metadata(log.Field{
+				"error":   err.Error(),
+				"service": "Stream.SetSource()",
 				"inputs": map[string]interface{}{
 					"source": src,
 				},
@@ -141,54 +99,57 @@ func (s *Stream) SetSource(src string) {
 					"testRead":   len(buf),
 				},
 				"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
-			},
+			}).Build()
+
+			return errors.New("HTTP request has an empty body")
 		}
+
+		logCh <- log.NewMessage().Level(log.LLDebug).Sub("SetSource()").Message("HTTP request seems OK").Metadata(log.Field{
+			"inputs": map[string]interface{}{
+				"source": src,
+			},
+			"response": map[string]interface{}{
+				"statusCode": resp.StatusCode,
+				"status":     resp.Status,
+				"dataLength": resp.ContentLength,
+				"headers":    resp.Header,
+				"testRead":   len(buf),
+			},
+			"desc": "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
+		}).Build()
 		s.source = resp.Body
 		return nil
 	})
 
 	if err != nil {
-		LogCh <- log.ChLogMessage{
-			Prefix: "ipcam-stream: SetSource()",
-			Level:  log.LLFatal,
-			Msg:    "failed to initialize HTTP stream with exponential backoff",
-			Metadata: map[string]interface{}{
-				"error":   err.Error(),
-				"service": "Stream.SetSource()",
-				"inputs": map[string]interface{}{
-					"source": src,
-				},
-				"desc":        "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
-				"numAttempts": n,
+		logCh <- log.NewMessage().Level(log.LLFatal).Sub("SetSource()").Message("failed to initialize HTTP stream with exponential backoff").Metadata(log.Field{
+			"error":   err.Error(),
+			"service": "Stream.SetSource()",
+			"inputs": map[string]interface{}{
+				"source": src,
 			},
-		}
+			"desc":        "initializing HTTP stream from A/V endpoint, with a HTTP GET request",
+			"numAttempts": n,
+		}).Build()
+
 	}
 
 }
 
 func (s *Stream) SetOutput(out string) {
-	LogCh <- log.ChLogMessage{
-		Prefix: "ipcam-stream: SetOutput()",
-		Level:  log.LLDebug,
-		Msg:    fmt.Sprintf("creating output A/V stream file on %s", out),
-	}
+	logCh <- log.NewMessage().Level(log.LLDebug).Sub("SetOutput()").Message("creating output A/V stream file").Metadata(log.Field{"path": out}).Build()
 
 	output, err := os.Create(out)
 	if err != nil {
 
-		LogCh <- log.ChLogMessage{
-			Prefix: "ipcam-stream: SetOutput()",
-			Level:  log.LLFatal,
-			Msg:    "failed to create cache output file",
-			Metadata: map[string]interface{}{
-				"error":   err.Error(),
-				"service": "Stream.SetOutput()",
-				"inputs": map[string]interface{}{
-					"target": out,
-				},
-				"desc": "creating the output file which will contain the A/V stream",
+		logCh <- log.NewMessage().Level(log.LLFatal).Sub("SetOutput()").Message("failed to create cache output file").Metadata(log.Field{
+			"error":   err.Error(),
+			"service": "Stream.SetOutput()",
+			"inputs": map[string]interface{}{
+				"target": out,
 			},
-		}
+			"desc": "creating the output file which will contain the A/V stream",
+		}).Build()
 
 	}
 	s.output = output
@@ -206,83 +167,31 @@ func (s *Stream) Copy() {
 	defer logPanics("Copy()")
 
 	defer func() {
-		LogCh <- log.ChLogMessage{
-			Prefix: "ipcam-stream: Copy()",
-			Level:  log.LLDebug,
-			Msg:    "closing inputs and outputs",
-			Metadata: map[string]interface{}{
-				"path": s.outPath,
-			},
-		}
+		logCh <- log.NewMessage().Level(log.LLDebug).Sub("Copy()").Message("closing inputs and outputs").Metadata(log.Field{"path": s.outPath}).Build()
 
 		err := s.output.Close()
 		if err != nil {
-
-			LogCh <- log.ChLogMessage{
-				Prefix: "ipcam-stream: Copy()",
-				Level:  log.LLError,
-				Msg:    "error closing output file",
-				Metadata: map[string]interface{}{
-					"path": s.outPath,
-				},
-			}
+			logCh <- log.NewMessage().Level(log.LLError).Sub("Copy()").Message("error closing output file").Metadata(log.Field{"path": s.outPath, "error": err.Error()}).Build()
 		}
+
 		err = s.source.Close()
 		if err != nil {
-
-			LogCh <- log.ChLogMessage{
-				Prefix: "ipcam-stream: Copy()",
-				Level:  log.LLError,
-				Msg:    "error closing source stream",
-				Metadata: map[string]interface{}{
-					"path": s.outPath,
-				},
-			}
+			logCh <- log.NewMessage().Level(log.LLError).Sub("Copy()").Message("error closing source stream").Metadata(log.Field{"path": s.outPath, "error": err.Error()}).Build()
 		}
 	}()
 
-	LogCh <- log.ChLogMessage{
-		Prefix: "ipcam-stream: Copy()",
-		Level:  log.LLDebug,
-		Msg:    "copying data stream to file",
-		Metadata: map[string]interface{}{
-			"path": s.outPath,
-		},
-	}
+	logCh <- log.NewMessage().Level(log.LLDebug).Sub("Copy()").Message("copying data stream to file").Metadata(log.Field{"path": s.outPath}).Build()
 
 	n, err := io.Copy(s.output, s.source)
 	if err != nil {
-		LogCh <- log.ChLogMessage{
-			Prefix: "ipcam-stream: Copy()",
-			Level:  log.LLError,
-			Msg:    "failed to copy data",
-			Metadata: map[string]interface{}{
-				"error": err.Error(),
-				"path":  s.outPath,
-			},
-		}
+		logCh <- log.NewMessage().Level(log.LLError).Sub("Copy()").Message("failed to copy data").Metadata(log.Field{"path": s.outPath, "error": err.Error()}).Build()
 	}
 
 	if n == 0 {
-		LogCh <- log.ChLogMessage{
-			Prefix: "ipcam-stream: Copy()",
-			Level:  log.LLError,
-			Msg:    "copy routine points to an empty buffer",
-			Metadata: map[string]interface{}{
-				"error": "copied data is of length 0 bytes",
-				"path":  s.outPath,
-			},
-		}
+		logCh <- log.NewMessage().Level(log.LLError).Sub("Copy()").Message("copy routine points to an empty buffer").Metadata(log.Field{"path": s.outPath, "error": "copied data is of length 0 bytes"}).Build()
 	}
 
-	LogCh <- log.ChLogMessage{
-		Prefix: "ipcam-stream: Copy()",
-		Level:  log.LLDebug,
-		Msg:    "copied data successfully",
-		Metadata: map[string]interface{}{
-			"path": s.outPath,
-		},
-	}
+	logCh <- log.NewMessage().Level(log.LLDebug).Sub("Copy()").Message("copied data successfully").Metadata(log.Field{"path": s.outPath}).Build()
 }
 
 func (s *Stream) CopyTimeout(wait time.Duration) {
@@ -299,19 +208,11 @@ func (s *SplitStream) SyncTimeout(wait time.Duration) {
 
 	time.Sleep(wait)
 
-	LogCh <- log.ChLogMessage{
-		Prefix: "ipcam-stream: SyncTimeout()",
-		Level:  log.LLInfo,
-		Msg:    "stream timed out",
-	}
+	logCh <- log.NewMessage().Sub("SyncTimeout()").Message("stream deadline reached").Build()
 }
 
 func (s *SplitStream) Merge(videoRate string) {
-	LogCh <- log.ChLogMessage{
-		Prefix: "ipcam-stream: Merge()",
-		Level:  log.LLInfo,
-		Msg:    "initialized merge workflow",
-	}
+	logCh <- log.NewMessage().Sub("Merge()").Message("initialized merge workflow").Build()
 
 	err := ffmpeg.Output(
 		[]*ffmpeg.Stream{
@@ -330,115 +231,72 @@ func (s *SplitStream) Merge(videoRate string) {
 		ffmpeg.KwArgs{"pix_fmt": "yuv420p"},
 	).OverWriteOutput().ErrorToStdOut().Run()
 	if err != nil {
-		LogCh <- log.ChLogMessage{
-			Prefix: "ipcam-stream: Merge()",
-			Level:  log.LLError,
-			Msg:    "unable to merge the cached A/V files",
-			Metadata: map[string]interface{}{
+		logCh <- log.NewMessage().Level(log.LLError).Sub("Merge()").Message("unable to merge the cached A/V files").Metadata(log.Field{
+			"error":   err.Error(),
+			"service": "SplitStream.Merge()",
+			"inputs": map[string]interface{}{
+				"video": s.video.outPath,
+				"audio": s.audio.outPath,
+			},
+			"desc": "merging cached audio and cached video into one file, using libx264",
+			"proc": map[string]interface{}{
+				"input": map[string]interface{}{
+					"video": map[string]interface{}{
+						"vsync": "1",
+						"r":     videoRate,
+					},
+				},
+				"output": map[string]interface{}{
+					"input_format": "1",
+					"b:v":          "4000k",
+					"c:v":          "libx264",
+					"c:a":          "aac",
+					"pix_fmt":      "yuv420p",
+				},
+			},
+		}).Build()
+
+	}
+
+	logCh <- log.NewMessage().Sub("Merge()").Message("cleaning up cached files").Metadata(log.Field{
+		"cache": map[string]interface{}{
+			"video": s.video.outPath,
+			"audio": s.audio.outPath,
+		},
+	}).Build()
+
+	if errs := s.Cleanup(); len(errs) > 0 {
+		for _, err := range errs {
+			logCh <- log.NewMessage().Level(log.LLError).Sub("Merge()").Message("failed to remove cached A/V file").Metadata(log.Field{
 				"error":   err.Error(),
 				"service": "SplitStream.Merge()",
 				"inputs": map[string]interface{}{
 					"video": s.video.outPath,
 					"audio": s.audio.outPath,
 				},
-				"desc": "merging cached audio and cached video into one file, using libx264",
-				"proc": map[string]interface{}{
-					"input": map[string]interface{}{
-						"video": map[string]interface{}{
-							"vsync": "1",
-							"r":     videoRate,
-						},
-					},
-					"output": map[string]interface{}{
-						"input_format": "1",
-						"b:v":          "4000k",
-						"c:v":          "libx264",
-						"c:a":          "aac",
-						"pix_fmt":      "yuv420p",
-					},
-				},
-			},
-		}
-	}
-
-	LogCh <- log.ChLogMessage{
-		Prefix: "ipcam-stream: Merge()",
-		Level:  log.LLInfo,
-		Msg:    "cleaning up cached files",
-		Metadata: map[string]interface{}{
-			"cache": map[string]interface{}{
-				"video": s.video.outPath,
-				"audio": s.audio.outPath,
-			},
-		},
-	}
-
-	if errs := s.Cleanup(); len(errs) > 0 {
-		for _, err := range errs {
-			LogCh <- log.ChLogMessage{
-				Prefix: "ipcam-stream: Merge()",
-				Level:  log.LLError,
-				Msg:    "failed to remove cached A/V file",
-				Metadata: map[string]interface{}{
-					"error":   err.Error(),
-					"service": "SplitStream.Merge()",
-					"inputs": map[string]interface{}{
-						"video": s.video.outPath,
-						"audio": s.audio.outPath,
-					},
-					"desc": "removing cached audio and cached video files after merging",
-				},
-			}
+				"desc": "removing cached audio and cached video files after merging",
+			}).Build()
 		}
 	}
 }
 
 func (s *SplitStream) Cleanup() []error {
-	LogCh <- log.ChLogMessage{
-		Prefix: "ipcam-stream: Cleanup()",
-		Level:  log.LLInfo,
-		Msg:    "starting cleanup sequence for cached files",
-	}
+	logCh <- log.NewMessage().Sub("Cleanup()").Message("starting cleanup sequence for cached files").Build()
 
 	var errs []error
 
-	LogCh <- log.ChLogMessage{
-		Prefix: "ipcam-stream: Cleanup()",
-		Level:  log.LLDebug,
-		Msg:    fmt.Sprintf("removing video file: %s", s.video.outPath),
-	}
+	logCh <- log.NewMessage().Level(log.LLDebug).Sub("Cleanup()").Message("removing video file").Metadata(log.Field{"path": s.video.outPath}).Build()
 
 	if err := os.Remove(s.video.outPath); err != nil {
-		LogCh <- log.ChLogMessage{
-			Prefix: "ipcam-stream: Cleanup()",
-			Level:  log.LLWarn,
-			Msg:    "failed to remove video file",
-			Metadata: map[string]interface{}{
-				"error": err.Error(),
-				"path":  s.video.outPath,
-			},
-		}
+		logCh <- log.NewMessage().Level(log.LLWarn).Sub("Cleanup()").Message("failed to remove video file").Metadata(log.Field{"path": s.video.outPath, "error": err.Error()}).Build()
 
 		errs = append(errs, err)
 	}
 
-	LogCh <- log.ChLogMessage{
-		Prefix: "ipcam-stream: Cleanup()",
-		Level:  log.LLDebug,
-		Msg:    fmt.Sprintf("removing audio file: %s", s.audio.outPath),
-	}
+	logCh <- log.NewMessage().Level(log.LLDebug).Sub("Cleanup()").Message("removing audio file").Metadata(log.Field{"path": s.audio.outPath}).Build()
 
 	if err := os.Remove(s.audio.outPath); err != nil {
-
-		LogCh <- log.ChLogMessage{
-			Prefix: "ipcam-stream: Cleanup()",
-			Level:  log.LLWarn,
-			Msg:    "failed to remove audio file",
-			Metadata: map[string]interface{}{
-				"error": err.Error(),
-				"path":  s.audio.outPath,
-			},
-		}
+		logCh <- log.NewMessage().Level(log.LLWarn).Sub("Cleanup()").Message("failed to remove audio file").Metadata(log.Field{"path": s.audio.outPath, "error": err.Error()}).Build()
 
 		errs = append(errs, err)
 	}
@@ -447,15 +305,11 @@ func (s *SplitStream) Cleanup() []error {
 
 func logPanics(service string) {
 	if r := recover(); r != nil {
-		LogCh <- log.ChLogMessage{
-			Prefix: "ipcam-stream",
-			Level:  log.LLPanic,
-			Msg:    "crashed due to a goroutine error",
-			Metadata: map[string]interface{}{
-				"error":   r,
-				"service": fmt.Sprintf("goroutine error - %s", service),
-			},
-		}
+		logCh <- log.NewMessage().Level(log.LLPanic).Sub("Panic()").Message("crashed due to a goroutine error").Metadata(log.Field{
+			"error":   r,
+			"service": service,
+		}).Build()
+
 		panic(r)
 	}
 

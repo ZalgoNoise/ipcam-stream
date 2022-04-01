@@ -3,10 +3,10 @@ package ipcam
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"os"
 
-	"github.com/ZalgoNoise/zlog/log"
+	"github.com/zalgonoise/zlog/log"
+	"github.com/zalgonoise/zlog/store"
 )
 
 func (s *StreamService) Flags() *StreamRequest {
@@ -30,79 +30,53 @@ func (s *StreamService) Flags() *StreamRequest {
 		s.logfileHandler(*inputLogfile)
 	}
 
-	LogCh <- log.ChLogMessage{
-		Prefix: "ipcam-stream: Flags()",
-		Level:  log.LLInfo,
-		Msg:    "parsed flags from CLI",
-		Metadata: map[string]interface{}{
-			"len":    *inputLen,
-			"vurl":   *inputVideoURL,
-			"aurl":   *inputAudioURL,
-			"tmp":    *inputTmpDir,
-			"out":    *inputOutDir,
-			"ext":    *inputExtension,
-			"vrate":  *inputVideoRate,
-			"rotate": *inputRotate,
-			"log":    *inputLogfile,
-			"cfg":    *inputCfgFile,
-		},
-	}
+	logCh <- log.NewMessage().Sub("Flags()").Message("parsed flags from CLI").Metadata(log.Field{
+		"len":    *inputLen,
+		"vurl":   *inputVideoURL,
+		"aurl":   *inputAudioURL,
+		"tmp":    *inputTmpDir,
+		"out":    *inputOutDir,
+		"ext":    *inputExtension,
+		"vrate":  *inputVideoRate,
+		"rotate": *inputRotate,
+		"log":    *inputLogfile,
+		"cfg":    *inputCfgFile,
+	}).Build()
 
 	if *inputCfgFile != "" {
 		cfg := &StreamRequest{}
 
-		LogCh <- log.ChLogMessage{
-			Prefix: "ipcam-stream: Flags()",
-			Level:  log.LLDebug,
-			Msg:    fmt.Sprintf("reading config file %s", *inputCfgFile),
-		}
+		logCh <- log.NewMessage().Level(log.LLDebug).Sub("Flags()").Message("reading config file").Metadata(log.Field{"path": *inputCfgFile}).Build()
 
 		data, err := os.ReadFile(*inputCfgFile)
 		if err != nil {
 
-			LogCh <- log.ChLogMessage{
-				Prefix: "ipcam-stream: Flags()",
-				Level:  log.LLFatal,
-				Msg:    "unable to read file",
-				Metadata: map[string]interface{}{
-					"error": err.Error(),
-				},
-			}
+			logCh <- log.NewMessage().Level(log.LLFatal).Sub("Flags()").Message("unable to read file").Metadata(log.Field{"path": *inputCfgFile, "error": err.Error()}).Build()
 		}
 
 		if err := json.Unmarshal(data, cfg); err != nil {
 
-			LogCh <- log.ChLogMessage{
-				Prefix: "ipcam-stream: Flags()",
-				Level:  log.LLFatal,
-				Msg:    "unable to parse JSON data",
-				Metadata: map[string]interface{}{
-					"error": err.Error(),
-				},
-			}
+			logCh <- log.NewMessage().Level(log.LLFatal).Sub("Flags()").Message("unable to parse JSON data").Metadata(log.Field{"path": *inputCfgFile, "error": err.Error()}).Build()
+
 		}
 
 		if cfg.Logfile != "" {
 			s.logfileHandler(cfg.Logfile)
 		}
 
-		LogCh <- log.ChLogMessage{
-			Prefix: "ipcam-stream: Flags()",
-			Level:  log.LLInfo,
-			Msg:    "read config from file successfully",
-			Metadata: map[string]interface{}{
-				"len":    cfg.TimeLen,
-				"vurl":   cfg.VideoURL,
-				"aurl":   cfg.AudioURL,
-				"tmp":    cfg.TmpDir,
-				"out":    cfg.OutDir,
-				"ext":    cfg.OutExt,
-				"vrate":  cfg.VideoRate,
-				"rotate": cfg.Rotate,
-				"log":    cfg.Logfile,
-				"cfg":    *inputCfgFile,
-			},
-		}
+		logCh <- log.NewMessage().Sub("Flags()").Message("read config from file successfully").Metadata(log.Field{
+			"len":    cfg.TimeLen,
+			"vurl":   cfg.VideoURL,
+			"aurl":   cfg.AudioURL,
+			"tmp":    cfg.TmpDir,
+			"out":    cfg.OutDir,
+			"ext":    cfg.OutExt,
+			"vrate":  cfg.VideoRate,
+			"rotate": cfg.Rotate,
+			"log":    cfg.Logfile,
+			"cfg":    *inputCfgFile,
+		}).Build()
+
 		return cfg
 
 	}
@@ -120,34 +94,23 @@ func (s *StreamService) Flags() *StreamRequest {
 }
 
 func (s *StreamService) logfileHandler(path string) {
-	LogCh <- log.ChLogMessage{
-		Prefix: "ipcam-stream: logfileHandler()",
-		Level:  log.LLDebug,
-		Msg:    fmt.Sprintf("reading logfile as from input: %s", path),
-	}
 
-	logf, err := log.NewLogfile(path)
+	logCh <- log.NewMessage().Level(log.LLDebug).Sub("logfileHandler()").Message("reading logfile as from input").Metadata(log.Field{"path": path}).Build()
+
+	logf, err := store.NewLogfile(path)
 
 	if err != nil {
-		LogCh <- log.ChLogMessage{
-			Prefix: "ipcam-stream: logfileHandler()",
-			Level:  log.LLFatal,
-			Msg:    "failed to setup logfile",
-			Metadata: map[string]interface{}{
-				"error": err.Error(),
-				"path":  path,
-			},
-		}
+		logCh <- log.NewMessage().Level(log.LLFatal).Sub("logfileHandler()").Message("failed to setup logfile").Metadata(log.Field{"path": path, "error": err.Error()}).Build()
 	}
 
-	LogCh <- log.ChLogMessage{
-		Prefix: "ipcam-stream: logfileHandler()",
-		Level:  log.LLDebug,
-		Msg:    fmt.Sprintf("added logfile as from input: %s", path),
-	}
+	logCh <- log.NewMessage().Level(log.LLDebug).Sub("logfileHandler()").Message("added logfile as from input").Metadata(log.Field{"path": path}).Build()
 
-	s.Log = log.MultiLogger(
-		s.Log,
-		log.New("ipcam-stream", log.JSONFormat, logf),
+	s.Logger = log.MultiLogger(
+		s.Logger,
+		log.New(
+			log.WithPrefix("ipcam-stream"),
+			log.WithOut(logf),
+			log.FormatJSON,
+		),
 	)
 }

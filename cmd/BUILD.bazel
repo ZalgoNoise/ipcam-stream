@@ -3,7 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "cmd",
     srcs = ["ipcam-stream.go"],
-    importpath = "github.com/ZalgoNoise/ipcam-stream/cmd",
+    importpath = "github.com/zalgonoise/ipcam-stream/cmd",
     visibility = ["//visibility:public"],
     deps = ["//ipcam"],
 )

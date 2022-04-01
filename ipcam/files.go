@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/ZalgoNoise/zlog/log"
+	"github.com/zalgonoise/zlog/log"
 )
 
 type cache struct {
@@ -20,15 +20,8 @@ func (c *cache) load(path string) error {
 	c.files, err = fs.Glob(os.DirFS(path), "*")
 
 	if err != nil {
-		LogCh <- log.ChLogMessage{
-			Prefix: "ipcam-stream: load()",
-			Level:  log.LLWarn,
-			Msg:    "failed to parse cache's glob path",
-			Metadata: map[string]interface{}{
-				"error":  err.Error(),
-				"target": path,
-			},
-		}
+		logCh <- log.NewMessage().Level(log.LLWarn).Sub("load()").Message("failed to parse cache's glob path").Metadata(log.Field{"path": path, "error": err.Error()}).Build()
+
 		return err
 	}
 
@@ -47,15 +40,8 @@ func (c *cache) clear() []error {
 
 	for _, file := range c.files {
 		if err := os.RemoveAll(c.root + file); err != nil {
-			LogCh <- log.ChLogMessage{
-				Prefix: "ipcam-stream: clear()",
-				Level:  log.LLWarn,
-				Msg:    "failed to remove target file",
-				Metadata: map[string]interface{}{
-					"error":  err.Error(),
-					"target": c.root + file,
-				},
-			}
+			logCh <- log.NewMessage().Level(log.LLWarn).Sub("clear()").Message("failed to remove target file").Metadata(log.Field{"path": c.root + file, "error": err.Error()}).Build()
+
 			errs = append(errs, err)
 		}
 	}
@@ -76,15 +62,8 @@ func (d *dir) load(path string) error {
 	d.dirs, err = fs.Glob(os.DirFS(path), "*")
 
 	if err != nil {
-		LogCh <- log.ChLogMessage{
-			Prefix: "ipcam-stream: load()",
-			Level:  log.LLWarn,
-			Msg:    "failed to parse glob path",
-			Metadata: map[string]interface{}{
-				"error":  err.Error(),
-				"target": path,
-			},
-		}
+		logCh <- log.NewMessage().Level(log.LLWarn).Sub("load()").Message("failed to parse glob path").Metadata(log.Field{"path": path, "error": err.Error()}).Build()
+
 		return err
 	}
 
@@ -122,15 +101,8 @@ func (d *dir) listOlder(from time.Time, days int) ([]string, []error) {
 
 		t, err := time.Parse("2006-01-02", folder)
 		if err != nil {
-			LogCh <- log.ChLogMessage{
-				Prefix: "ipcam-stream: listOlder()",
-				Level:  log.LLWarn,
-				Msg:    "failed to parse folder name",
-				Metadata: map[string]interface{}{
-					"error":  err.Error(),
-					"target": folder,
-				},
-			}
+			logCh <- log.NewMessage().Level(log.LLWarn).Sub("listOlder()").Message("failed to parse folder name").Metadata(log.Field{"target": folder, "error": err.Error()}).Build()
+
 			errs = append(errs, err)
 			continue
 		}
@@ -147,28 +119,13 @@ func (d *dir) rotate(from time.Time, days int) {
 
 	for _, target := range targets {
 		if err := os.RemoveAll(d.root + target); err != nil {
-			LogCh <- log.ChLogMessage{
-				Prefix: "ipcam-stream: rotate()",
-				Level:  log.LLWarn,
-				Msg:    "failed to remove old stream files",
-				Metadata: map[string]interface{}{
-					"error":  err.Error(),
-					"target": d.root + target,
-				},
-			}
+			logCh <- log.NewMessage().Level(log.LLWarn).Sub("rotate()").Message("failed to remove old stream files").Metadata(log.Field{"target": d.root + target, "error": err.Error()}).Build()
 		}
 	}
 
 	if len(errs) > 0 {
 		for _, err := range errs {
-			LogCh <- log.ChLogMessage{
-				Prefix: "ipcam-stream: rotate()",
-				Level:  log.LLWarn,
-				Msg:    "failed to list stream files",
-				Metadata: map[string]interface{}{
-					"error": err.Error(),
-				},
-			}
+			logCh <- log.NewMessage().Level(log.LLWarn).Sub("rotate()").Message("failed to list stream files").Metadata(log.Field{"error": err.Error()}).Build()
 		}
 	}
 }

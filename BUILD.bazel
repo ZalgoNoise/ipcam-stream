@@ -3,7 +3,7 @@ load("@bazel_gazelle//:def.bzl", "gazelle")
 load("@com_github_bazelbuild_buildtools//buildifier:def.bzl", "buildifier")
 # load("@io_bazel_rules_docker//container:container.bzl", "container_image", "container_push")
 
-# gazelle:prefix github.com/ZalgoNoise/ipcam-stream
+# gazelle:prefix github.com/zalgonoise/ipcam-stream
 gazelle(name = "gazelle")
 
 buildifier(
@@ -23,7 +23,7 @@ buildifier(
 go_library(
     name = "ipcam-stream_lib",
     srcs = ["main.go"],
-    importpath = "github.com/ZalgoNoise/ipcam-stream",
+    importpath = "github.com/zalgonoise/ipcam-stream",
     visibility = ["//visibility:private"],
     deps = ["//cmd"],
 )

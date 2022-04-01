@@ -9,7 +9,7 @@ go_library(
         "service.go",
         "stream.go",
     ],
-    importpath = "github.com/ZalgoNoise/ipcam-stream/ipcam",
+    importpath = "github.com/zalgonoise/ipcam-stream/ipcam",
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_u2takey_ffmpeg_go//:ffmpeg-go",
